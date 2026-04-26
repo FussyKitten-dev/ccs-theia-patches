@@ -27,6 +27,25 @@ files = [
     "lib/frontend/secondary-window.js",
 ]
 
+toggle_re = re.compile(
+    r"""doToggle\(event\) \{\s*
+\s*const nodeId = event\.currentTarget\.getAttribute\('data-node-id'\);\s*
+\s*if \(nodeId\) \{\s*
+\s*const node = this\.model\.getNode\(nodeId\);\s*
+\s*if \(node && this\.props\.expandOnlyOnExpansionToggleClick\) \{\s*
+\s*if \(this\.isExpandable\(node\) && !this\.hasShiftMask\(event\) && !this\.hasCtrlCmdMask\(event\)\) \{\s*
+\s*this\.model\.toggleNodeExpansion\(node\);\s*
+\s*\}\s*
+\s*\}\s*
+\s*else \{\s*
+\s*this\.handleClickEvent\(node, event\);\s*
+\s*\}\s*
+\s*\}\s*
+\s*event\.stopPropagation\(\);\s*
+\s*\}""",
+    re.MULTILINE
+)
+
 tap_re = re.compile(
     r"""tapNode\(node\) \{\s*
 \s*if \(tree_selection_1\.SelectableTreeNode\.is\(node\)\) \{\s*
@@ -46,6 +65,20 @@ dbl_re = re.compile(
 \s*\}""",
     re.MULTILINE
 )
+
+toggle_patch = """doToggle(event) {
+        const nodeId = event.currentTarget.getAttribute('data-node-id');
+        if (nodeId) {
+            const node = this.model.getNode(nodeId);
+            if (node && this.isExpandable(node) && !this.hasShiftMask(event) && !this.hasCtrlCmdMask(event)) {
+                this.model.toggleNodeExpansion(node);
+            }
+            else {
+                this.handleClickEvent(node, event);
+            }
+        }
+        event.stopPropagation();
+    }"""
 
 tap_patch = """tapNode(node) {
         if (tree_selection_1.SelectableTreeNode.is(node)) {
@@ -74,12 +107,13 @@ for rel in files:
     text = path.read_text()
     original = text
 
+    text, toggle_count = toggle_re.subn(toggle_patch, text)
     text, tap_count = tap_re.subn(tap_patch, text)
     text, dbl_count = dbl_re.subn(dbl_patch, text)
 
     if text != original:
         path.write_text(text)
-        print(f"PATCHED {rel}: tap={tap_count}, dbl={dbl_count}")
+        print(f"PATCHED {rel}: toggle={toggle_count}, tap={tap_count}, dbl={dbl_count}")
     else:
         print(f"NO CHANGE {rel}: pattern not found or already patched")
 PY

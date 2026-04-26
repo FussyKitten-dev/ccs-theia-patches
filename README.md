@@ -37,14 +37,16 @@ Double-click again → original layout restored.
 
 ---
 
-### 2. `patch-folder-expansion.sh` — Single-click select, double-click expand
+### 2. `patch-folder-expansion.sh` — Single-click chevron, double-click folder name
 
 Changes the tree widget (Project Explorer, etc.) so that:
 
 | Action | Before | After |
 |--------|--------|-------|
-| Single click | Select + expand/collapse | Select only |
-| Double click | Open file | Toggle expand/collapse (folders) or open (files) |
+| Single click on folder name | Select + expand/collapse | Select only |
+| Double click on folder name | Open file | Toggle expand/collapse |
+| Single click on chevron | Expand/collapse | Expand/collapse |
+| Double click on file name | Open file | Open file |
 
 This matches the behavior of most file explorers and VS Code's default tree interaction.
 
@@ -107,7 +109,11 @@ This operates entirely through Lumino's layout engine — no DOM manipulation.
 
 ### Folder expansion
 
-The tree widget's `tapNode` method normally both selects and expands a node on single click. The patch removes the expansion from single click and moves it to `handleDblClickEvent`, where folders toggle expansion and files open normally.
+The tree widget's row click handler normally expands some trees on single click, and its expansion toggle can fall back to that same row-click path. The patch makes three targeted changes:
+
+1. `tapNode` only selects the clicked row
+2. `handleDblClickEvent` toggles folders but still opens files
+3. `doToggle` always toggles the chevron on a single click, independent of the row-click behavior
 
 ---
 
